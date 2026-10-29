@@ -1,0 +1,16 @@
+[package]
+name = "better-stressbots-pumpkin"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+pumpkin-plugin-api = "0.2.1"
+tracing = "0.1"
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = true

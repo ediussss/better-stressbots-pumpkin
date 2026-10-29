@@ -1,0 +1,91 @@
+diff --git a/crates/pumpkin-wasm-host-v0_2/src/generated_packets.rs b/crates/pumpkin-wasm-host-v0_2/src/generated_packets.rs
+index 8167e0e9..22d17e74 100644
+--- a/crates/pumpkin-wasm-host-v0_2/src/generated_packets.rs
++++ b/crates/pumpkin-wasm-host-v0_2/src/generated_packets.rs
+@@ -612,6 +612,86 @@ pub fn serialize_java_packet(
+                 .unwrap();
+             Some(buf.into())
+         }
++        ClientboundPacket::CPlayerInfoUpdate(data) => {
++            // Manually added: the generated host bindings omit this packet, which
++            // made plugin tab-list updates silently no-op.
++            let players = data
++                .players
++                .iter()
++                .map(|p| {
++                    let actions = p
++                        .actions
++                        .iter()
++                        .map(|a| match a {
++                            crate::pumpkin::plugin::java_packets::PlayerAction::AddPlayer(add) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::AddPlayer {
++                                    name: &add.name,
++                                    properties: &[],
++                                }
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::InitializeChat(init) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::InitializeChat(
++                                    init.as_ref().map(|i| {
++                                        pumpkin_protocol::java::client::play::InitChat {
++                                            session_id: uuid::Uuid::from_u64_pair(
++                                                i.session_id.high,
++                                                i.session_id.low,
++                                            ),
++                                            expires_at: i.expires_at,
++                                            public_key: i.public_key.clone().into_boxed_slice(),
++                                            signature: i.signature.clone().into_boxed_slice(),
++                                        }
++                                    }),
++                                )
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::UpdateGameMode(mode) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::UpdateGameMode(
++                                    VarInt(*mode),
++                                )
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::UpdateListed(listed) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::UpdateListed(*listed)
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::UpdateLatency(latency) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::UpdateLatency(
++                                    VarInt(*latency),
++                                )
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::UpdateDisplayName(_) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::UpdateDisplayName(None)
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::UpdateListOrder(order) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::UpdateListOrder(
++                                    VarInt(*order),
++                                )
++                            }
++                            crate::pumpkin::plugin::java_packets::PlayerAction::UpdateHat(show_hat) => {
++                                pumpkin_protocol::java::client::play::PlayerAction::UpdateHat(*show_hat)
++                            }
++                        })
++                        .collect::<Vec<_>>();
++                    (
++                        uuid::Uuid::from_u64_pair(p.uuid.high, p.uuid.low),
++                        actions,
++                    )
++                })
++                .collect::<Vec<_>>();
++            let entries = players
++                .iter()
++                .map(|(id, actions)| pumpkin_protocol::java::client::play::Player {
++                    uuid: *id,
++                    actions,
++                })
++                .collect::<Vec<_>>();
++            let p = pumpkin_protocol::java::client::play::CPlayerInfoUpdate {
++                actions: data.actions,
++                players: &entries,
++            };
++            let mut buf = Vec::new();
++            pumpkin_core::net::java::JavaClient::write_packet_for_version(&p, version, &mut buf)
++                .unwrap();
++            Some(buf.into())
++        }
+         ClientboundPacket::CRemovePlayerInfo(data) => {
+             let vec_players = data
+                 .players
