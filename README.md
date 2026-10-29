@@ -191,6 +191,18 @@ Build stamp: `tablist-hostfix-2026-10-28-r2`
 
 ---
 
+## Limitations (read before using)
+
+- Bots are **mannequin entities**, not real `ServerPlayer`s. They do not load
+  chunks and disappear from the tab list on a stock server (hence the patched
+  binary).
+- Tab-list entries only work with the **patched** Pumpkin binary
+  (`host-patches/` + `build-patched-server.sh`).
+- The native real-player approach (Option B) was attempted but is not shipped;
+  see `PROJECT-DEEPDIVE.md`.
+- The patched binary is Linux x86_64 / glibc only.
+- Hot-reload is not supported; restart the server after replacing files.
+
 ## Uninstall
 
 To remove all modifications:
